@@ -1,7 +1,7 @@
-# DealerDesk 98 — Fake Dealership Management System (DMS)
+# DealerDesk 98 - Fake Dealership Management System (DMS)
 
 A fully functional, deliberately old-school **Windows 98-style desktop** Dealership Management
-System built as an RPA testing target — the dealership-domain sibling of `fake-emr` (MedChart Pro 98).
+System built as an RPA testing target - the dealership-domain sibling of `fake-emr` (MedChart Pro 98).
 Tkinter UI, single SQLite database, idempotent seed data, and a DB-driven "chaos engine" that injects
 realistic enterprise-app friction (fake freezes, error dialogs, session timeouts, BSOD, etc.).
 
@@ -13,7 +13,7 @@ python main.py                           # launches the Win98 desktop app
 python create_shortcut.py                # (Windows) puts "DealerDesk 98.lnk" on the Desktop
 ```
 
-The database `dms.db` is created and seeded automatically on first launch (idempotent — safe to re-run).
+The database `dms.db` is created and seeded automatically on first launch (idempotent - safe to re-run).
 
 ## Logins
 
@@ -25,14 +25,14 @@ The database `dms.db` is created and seeded automatically on first launch (idemp
 
 ## Modules (left navigation)
 
-- **Home** — retro dashboard (clock, marquee, module status, quick stats)
-- **Customers** — customer master; detail window has tabs: Profile / Vehicles / Repair Orders / Deals / Appointments
-- **Inventory** — vehicles on the lot (In Stock / Sold / Customer-Owned)
-- **Deals** — sales transactions (primary sales flow)
-- **Repair Orders** — service write-ups using the "3 C's": Concern / Cause / Correction (+ Recommendations) — primary service flow
-- **Appointments** — service & sales appointments
-- **Reports** — canned dealership reports
-- **Settings** — chaos engine configuration (off by default)
+- **Home** - retro dashboard (clock, marquee, module status, quick stats)
+- **Customers** - customer master; detail window has tabs: Profile / Vehicles / Repair Orders / Deals / Appointments
+- **Inventory** - vehicles on the lot (In Stock / Sold / Customer-Owned)
+- **Deals** - sales transactions (primary sales flow)
+- **Repair Orders** - service write-ups using the "3 C's": Concern / Cause / Correction (+ Recommendations) - primary service flow
+- **Appointments** - service & sales appointments
+- **Reports** - canned dealership reports
+- **Settings** - chaos engine configuration (off by default)
 
 ## Domain mapping (vs. fake-emr / MedChart)
 

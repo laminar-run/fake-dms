@@ -1,5 +1,5 @@
 {
-  "_comment": "DealerDesk 98 — RPA Minefield Configuration. The desktop app reads chaos toggles from the chaos_settings table (Settings panel); this file documents difficulty presets and RPA use cases.",
+  "_comment": "DealerDesk 98 - RPA Minefield Configuration. The desktop app reads chaos toggles from the chaos_settings table (Settings panel); this file documents difficulty presets and RPA use cases.",
   "difficulty": "off",
   "desktop": {
     "chaos_on_startup": false,
@@ -49,7 +49,7 @@
       "validation": "Customer detail window opens with the correct customer number"
     },
     "repair_order_entry": {
-      "title": "Repair Order Entry (PRIMARY — Service)",
+      "title": "Repair Order Entry (PRIMARY - Service)",
       "description": "The primary service RPA flow: open a customer, write up a repair order with the 3 C's, and save",
       "steps": [
         "Click name=btn_nav_repair_orders",
@@ -64,7 +64,7 @@
       "validation": "A new row exists in repair_orders with the entered concern/cause/correction"
     },
     "deal_entry": {
-      "title": "Deal Entry (PRIMARY — Sales)",
+      "title": "Deal Entry (PRIMARY - Sales)",
       "description": "Create a sales deal linking a customer to an in-stock vehicle",
       "steps": [
         "Click name=btn_nav_deals",

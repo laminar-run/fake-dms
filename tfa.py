@@ -1,4 +1,4 @@
-"""Fake 2FA (TOTP) for DealerDesk 98 — RFC 6238, stdlib only.
+"""Fake 2FA (TOTP) for DealerDesk 98 - RFC 6238, stdlib only.
 
 The same base32 secret is registered in Minicor's TFA vault and stored in the
 workspace config store (`totp_secret`), so an RPA workflow can compute the

@@ -80,7 +80,7 @@ class HomePanel(tk.Frame):
         self._start_blink()
 
     def _build(self):
-        title_bar(self, "  DealerDesk 98 — Home").pack(fill=tk.X)
+        title_bar(self, "  DealerDesk 98 - Home").pack(fill=tk.X)
 
         marquee_frame = tk.Frame(self, bg="#000080", pady=2)
         marquee_frame.pack(fill=tk.X)

@@ -1,4 +1,4 @@
-"""Idempotent seed for DealerDesk 98 — only inserts if tables are empty."""
+"""Idempotent seed for DealerDesk 98 - only inserts if tables are empty."""
 import random
 from datetime import date, timedelta, datetime
 from db.connection import get_connection
@@ -79,11 +79,11 @@ CORRECTIONS = [
 ]
 RECOMMENDATIONS = [
     "Recommend rear brake service within 6 months",
-    "Tires at 5/32 — recommend replacement soon",
+    "Tires at 5/32 - recommend replacement soon",
     "Recommend fuel induction service at next visit",
     "No additional services recommended at this time",
     "Recommend wiper blade replacement",
-    "Recommend coolant flush — due by mileage",
+    "Recommend coolant flush - due by mileage",
 ]
 
 DEAL_TYPES = ["Finance", "Lease", "Cash"]
@@ -143,7 +143,7 @@ def seed():
             "INSERT INTO customers (customer_no,first_name,last_name,phone,email,address,city,state,zip,customer_type,salesperson)"
             " VALUES (?,?,?,?,?,?,?,?,?,?,?)", rows)
 
-    # Vehicles — inventory (in stock) + customer-owned (for service)
+    # Vehicles - inventory (in stock) + customer-owned (for service)
     if cur.execute("SELECT COUNT(*) FROM vehicles").fetchone()[0] == 0:
         cust_ids = [r[0] for r in cur.execute("SELECT id FROM customers").fetchall()]
         veh = []

@@ -8,7 +8,7 @@ class LoginWindow(tk.Toplevel):
     def __init__(self, master, on_success):
         super().__init__(master)
         self.on_success = on_success
-        self.title("DealerDesk 98 — Login")
+        self.title("DealerDesk 98 - Login")
         self.resizable(False, False)
         self.configure(bg=style.BG)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -98,7 +98,7 @@ class TfaWindow(tk.Toplevel):
         super().__init__(master)
         self.user = user
         self.on_success = on_success
-        self.title("DealerDesk 98 — Two-Factor Authentication")
+        self.title("DealerDesk 98 - Two-Factor Authentication")
         self.resizable(False, False)
         self.configure(bg=style.BG)
         self.protocol("WM_DELETE_WINDOW", lambda: self.master.destroy())
@@ -111,7 +111,7 @@ class TfaWindow(tk.Toplevel):
         self.focus_force()
 
     def _build(self):
-        title_bar(self, "  DealerDesk 98 — Security Verification  ").pack(fill=tk.X)
+        title_bar(self, "  DealerDesk 98 - Security Verification  ").pack(fill=tk.X)
         outer = w98_frame(self)
         outer.pack(padx=20, pady=16, fill=tk.BOTH, expand=True)
 

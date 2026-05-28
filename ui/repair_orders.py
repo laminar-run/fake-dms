@@ -1,4 +1,4 @@
-"""Repair Orders — the primary service-department RPA flow (analogous to the EMR SOAP encounter)."""
+"""Repair Orders - the primary service-department RPA flow (analogous to the EMR SOAP encounter)."""
 import tkinter as tk
 from tkinter import messagebox
 import random
@@ -53,7 +53,7 @@ def _show_ro_saved(parent, vals, ro_number, is_new):
     )
 
     win = tk.Toplevel(parent)
-    win.title("DealerDesk 98 — Repair Order Saved Successfully")
+    win.title("DealerDesk 98 - Repair Order Saved Successfully")
     win.configure(bg="#C0C0C0")
     win.resizable(False, False)
     win.attributes("-topmost", True)
@@ -253,7 +253,7 @@ class RepairOrderFormDialog(tk.Toplevel):
         self.geometry(f"+{(sw - w) // 2}+{(sh - h) // 2}")
 
     def _build(self, is_edit, preset_customer):
-        title_bar(self, "  Repair Order — Service Write-Up").pack(fill=tk.X)
+        title_bar(self, "  Repair Order - Service Write-Up").pack(fill=tk.X)
         outer = w98_frame(self)
         outer.pack(fill=tk.BOTH, expand=True, padx=8, pady=6)
 

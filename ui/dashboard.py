@@ -32,7 +32,7 @@ class DashboardWindow(tk.Toplevel):
         self.navigate(_SECTION_HOME)
 
     def _build(self):
-        bar = title_bar(self, "  DealerDesk 98 — Dealership Management System")
+        bar = title_bar(self, "  DealerDesk 98 - Dealership Management System")
         bar.pack(fill=tk.X)
 
         info_strip = tk.Frame(self, bg="#808080", pady=2)
@@ -106,27 +106,27 @@ class DashboardWindow(tk.Toplevel):
         elif section == _SECTION_CUSTOMERS:
             from ui.customers import CustomerListPanel
             CustomerListPanel(self._content_frame, self).pack(fill=tk.BOTH, expand=True)
-            self.status_bar.set("Customers — search or select a record")
+            self.status_bar.set("Customers - search or select a record")
 
         elif section == _SECTION_INVENTORY:
             from ui.inventory import InventoryPanel
             InventoryPanel(self._content_frame, self).pack(fill=tk.BOTH, expand=True)
-            self.status_bar.set("Inventory — vehicles on the lot")
+            self.status_bar.set("Inventory - vehicles on the lot")
 
         elif section == _SECTION_DEALS:
             from ui.deals import DealListPanel
             DealListPanel(self._content_frame, self).pack(fill=tk.BOTH, expand=True)
-            self.status_bar.set("Deals — sales transactions")
+            self.status_bar.set("Deals - sales transactions")
 
         elif section == _SECTION_REPAIR_ORDERS:
             from ui.repair_orders import RepairOrderListPanel
             RepairOrderListPanel(self._content_frame, self).pack(fill=tk.BOTH, expand=True)
-            self.status_bar.set("Repair Orders — service department")
+            self.status_bar.set("Repair Orders - service department")
 
         elif section == _SECTION_APPOINTMENTS:
             from ui.appointments import AppointmentListPanel
             AppointmentListPanel(self._content_frame, self).pack(fill=tk.BOTH, expand=True)
-            self.status_bar.set("Appointments — service and sales")
+            self.status_bar.set("Appointments - service and sales")
 
         elif section == _SECTION_REPORTS:
             from ui.reports import ReportsPanel
@@ -136,7 +136,7 @@ class DashboardWindow(tk.Toplevel):
         elif section == _SECTION_SETTINGS:
             from ui.settings import SettingsPanel
             SettingsPanel(self._content_frame, self).pack(fill=tk.BOTH, expand=True)
-            self.status_bar.set("Settings — chaos engine configuration")
+            self.status_bar.set("Settings - chaos engine configuration")
 
     def _logout(self):
         self.destroy()

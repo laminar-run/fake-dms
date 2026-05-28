@@ -1,4 +1,4 @@
-"""ChaosEngine singleton — reads settings from DB and fires scenarios."""
+"""ChaosEngine singleton - reads settings from DB and fires scenarios."""
 import threading
 import random
 from db.connection import get_connection

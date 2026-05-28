@@ -8,7 +8,7 @@ from ui.widgets import (
 from db.connection import get_connection
 
 
-# (setting_key, display name, description) — keys match chaos.engine SCENARIO_MAP
+# (setting_key, display name, description) - keys match chaos.engine SCENARIO_MAP
 SCENARIOS = [
     ("random_dialog", "Random Dialog", "Pops 'DMS server connection lost' dialog (loops on Cancel)"),
     ("fake_freeze", "Fake Freeze", "Freezes all widgets for 3-10 seconds"),

@@ -1,4 +1,4 @@
-"""DealerDesk 98 — Entry Point."""
+"""DealerDesk 98 - Entry Point."""
 import os
 import sys
 
@@ -52,7 +52,7 @@ def main():
     seed()
 
     root = tk.Tk()
-    root.withdraw()  # Hidden root — acts as parent for all Toplevel windows
+    root.withdraw()  # Hidden root - acts as parent for all Toplevel windows
 
     ico = os.path.join(_HERE, "assets", "dms.ico")
     if os.path.exists(ico):

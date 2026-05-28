@@ -30,7 +30,7 @@ def create_shortcut():
     shortcut.TargetPath = pythonw
     shortcut.Arguments = f'"{main_script}"'
     shortcut.WorkingDirectory = here
-    shortcut.Description = "DealerDesk 98 — Dealership Management System"
+    shortcut.Description = "DealerDesk 98 - Dealership Management System"
     if os.path.exists(ico_path):
         shortcut.IconLocation = ico_path
     shortcut.save()

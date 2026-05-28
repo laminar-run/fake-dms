@@ -308,7 +308,7 @@ def scenario_critical_error(root=None):
 
     def _show():
         win = tk.Toplevel(r)
-        win.title("DealerDesk 98 — Critical Application Error")
+        win.title("DealerDesk 98 - Critical Application Error")
         win.configure(bg="#C0C0C0")
         win.resizable(False, False)
         win.attributes("-topmost", True)
@@ -368,8 +368,8 @@ def scenario_critical_error(root=None):
                     btn.configure(state="disabled")
                 except Exception:
                     pass
-            win.title("DealerDesk 98 — Retrying...")
-            win.after(500, lambda: win.title("DealerDesk 98 — Critical Application Error"))
+            win.title("DealerDesk 98 - Retrying...")
+            win.after(500, lambda: win.title("DealerDesk 98 - Critical Application Error"))
             win.after(600, lambda: [btn.configure(state="normal")
                                      for btn in btn_row.winfo_children()
                                      if isinstance(btn, tk.Button)])

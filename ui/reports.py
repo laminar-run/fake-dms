@@ -1,4 +1,4 @@
-"""Reports section — canned dealership reports with fake loading and old-school output."""
+"""Reports section - canned dealership reports with fake loading and old-school output."""
 import tkinter as tk
 from tkinter import messagebox
 import datetime
