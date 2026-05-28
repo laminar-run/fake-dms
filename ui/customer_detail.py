@@ -83,6 +83,7 @@ class CustomerDetailWindow(tk.Toplevel):
         btn = w98_frame(frm)
         btn.grid(row=len(fields) // 2 + 1, column=0, columnspan=4, pady=8)
         w98_button(btn, "Save Profile", command=self._save_profile, name="btn_save_profile", width=16).pack(side=tk.LEFT, padx=6)
+        w98_button(btn, "Copy Record", command=self._copy_record, name="btn_copy_record", width=14).pack(side=tk.LEFT, padx=6)
 
     def _save_profile(self):
         _chaos_event("save")
@@ -98,6 +99,14 @@ class CustomerDetailWindow(tk.Toplevel):
         conn.close()
         self._customer.update(vals)
         messagebox.showinfo("Saved", "Customer profile updated.", parent=self)
+
+    def _copy_record(self):
+        """Copy the customer profile to the clipboard as JSON for downstream RPA."""
+        import json
+        record = {key: var.get().strip() for key, var in self._profile_vars.items()}
+        self.clipboard_clear()
+        self.clipboard_append(json.dumps(record))
+        self.update()
 
     # ── Vehicles ────────────────────────────────────────────────────────────
     def _build_vehicles(self, parent):

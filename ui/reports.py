@@ -257,10 +257,22 @@ class ReportsPanel(tk.Frame):
                             "Please collect your printout from the back office printer.", parent=self)
 
     def _fake_export(self):
-        if not self._current_report_key:
+        if not self._current_report_key or not self._current_sections:
             messagebox.showinfo("Export", "Please run a report first.", parent=self)
             return
-        messagebox.showinfo("Export to CSV",
-                            "Export complete!\n\n"
-                            r"File saved to: C:\DEALERDESK\REPORTS\EXPORT_001.CSV"
-                            "\n\nNote: File may be opened with Microsoft Excel 97.", parent=self)
+        import os
+        import csv
+        export_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "exports")
+        os.makedirs(export_dir, exist_ok=True)
+        path = os.path.join(export_dir, "report_export.csv")
+        title, columns, data = self._current_sections[0]
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(columns)
+            writer.writerows(data)
+        messagebox.showinfo(
+            "Export to CSV",
+            "Export complete!\n\nFile saved to: " + path +
+            "\n\nNote: File may be opened with Microsoft Excel 97.",
+            parent=self,
+        )
