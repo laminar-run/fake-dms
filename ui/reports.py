@@ -170,6 +170,7 @@ class ReportsPanel(tk.Frame):
         self._row_count_lbl = w98_label(btn_bar, text="")
         self._row_count_lbl.pack(side=tk.RIGHT, padx=6)
         self._current_report_key = None
+        self._current_sections = []
 
     def _run_report(self, key, name):
         self._current_report_key = key
@@ -207,6 +208,7 @@ class ReportsPanel(tk.Frame):
         if not runner:
             return
         sections = runner()
+        self._current_sections = sections
         total_rows = 0
         from tkinter import ttk
         nb = ttk.Notebook(self._notebook_frame, name="report_notebook")
