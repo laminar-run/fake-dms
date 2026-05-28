@@ -1,0 +1,104 @@
+{
+  "_comment": "DealerDesk 98 — RPA Minefield Configuration. The desktop app reads chaos toggles from the chaos_settings table (Settings panel); this file documents difficulty presets and RPA use cases.",
+  "difficulty": "off",
+  "desktop": {
+    "chaos_on_startup": false,
+    "db_path": "dms.db"
+  },
+  "chaos": {
+    "enabled": true,
+    "frequency": "occasional",
+    "trigger_mode": "event",
+    "scenarios": {
+      "random_dialog": {"enabled": true, "description": "Pops 'DMS server connection lost' dialog (loops on Cancel)"},
+      "fake_freeze": {"enabled": true, "description": "Freezes all widgets for 3-10 seconds"},
+      "session_timeout": {"enabled": true, "description": "Shows session expired, optionally logs out"},
+      "unexpected_save": {"enabled": true, "description": "Shows spurious 'Record saved' message"},
+      "critical_error": {"enabled": true, "description": "Massive red ERROR popup with fake stack trace"},
+      "field_corruption": {"enabled": false, "description": "Appends garbage chars to focused field"},
+      "save_failure": {"enabled": false, "description": "Error dialog but write is silently dropped"},
+      "wrong_patient": {"enabled": false, "description": "Wrong-customer warning dialog (legacy key name)"},
+      "bsod_overlay": {"enabled": false, "description": "Full-screen fake Blue Screen of Death"},
+      "slow_progress": {"enabled": false, "description": "Modal 'Loading...' that crawls 30 seconds"}
+    },
+    "frequency_intervals": {
+      "rare": {"min": 60, "max": 180},
+      "occasional": {"min": 20, "max": 60},
+      "frequent": {"min": 8, "max": 20},
+      "constant": {"min": 3, "max": 8}
+    }
+  },
+  "difficulty_presets": {
+    "off": {"chaos_enabled": false, "scenarios": []},
+    "easy": {"chaos_enabled": true, "frequency": "rare", "scenarios": ["random_dialog", "unexpected_save"]},
+    "medium": {"chaos_enabled": true, "frequency": "occasional", "scenarios": ["random_dialog", "fake_freeze", "session_timeout", "unexpected_save", "critical_error"]},
+    "hard": {"chaos_enabled": true, "frequency": "frequent", "scenarios": ["random_dialog", "fake_freeze", "session_timeout", "unexpected_save", "critical_error", "save_failure", "wrong_patient", "slow_progress"]},
+    "nightmare": {"chaos_enabled": true, "frequency": "constant", "scenarios": "*"}
+  },
+  "use_cases": {
+    "login": {
+      "title": "Login Flow",
+      "description": "Enter credentials and land on the dashboard",
+      "steps": ["Type into name=username", "Type into name=password", "Click name=btn_login", "Verify dashboard appears"],
+      "validation": "A user row matches the credentials and the dashboard window is shown"
+    },
+    "customer_search": {
+      "title": "Customer Search & Lookup",
+      "description": "Search by name or customer number and open a record",
+      "steps": ["Click name=btn_nav_customers", "Type into name=customer_search", "Click name=btn_search_customers", "Select a row in name=customer_tree", "Click name=btn_open_customer"],
+      "validation": "Customer detail window opens with the correct customer number"
+    },
+    "repair_order_entry": {
+      "title": "Repair Order Entry (PRIMARY — Service)",
+      "description": "The primary service RPA flow: open a customer, write up a repair order with the 3 C's, and save",
+      "steps": [
+        "Click name=btn_nav_repair_orders",
+        "Click name=btn_new_ro",
+        "Click name=btn_ro_lookup_customer, search and Select a customer",
+        "Click name=btn_ro_lookup_vehicle, Select the customer's vehicle",
+        "Type date into name=ro_date, choose name=ro_type / name=ro_advisor / name=ro_status, type name=ro_mileage",
+        "Fill name=ro_concern, name=ro_cause, name=ro_correction, name=ro_recommendations",
+        "Click name=btn_save_ro",
+        "Dismiss the 'Repair Order Saved' modal (OK)"
+      ],
+      "validation": "A new row exists in repair_orders with the entered concern/cause/correction"
+    },
+    "deal_entry": {
+      "title": "Deal Entry (PRIMARY — Sales)",
+      "description": "Create a sales deal linking a customer to an in-stock vehicle",
+      "steps": [
+        "Click name=btn_nav_deals",
+        "Click name=btn_new_deal",
+        "Click name=btn_deal_lookup_customer, Select a customer",
+        "Click name=btn_deal_lookup_vehicle, Select an in-stock vehicle",
+        "Fill name=deal_date / name=deal_salesperson / name=deal_type / name=deal_sale_price / name=deal_status",
+        "Click name=btn_save_deal"
+      ],
+      "validation": "A new row exists in deals; if status is Sold/Delivered the vehicle status becomes 'Sold'"
+    },
+    "appointment_schedule": {
+      "title": "Appointment Scheduling",
+      "description": "Schedule a service or sales appointment for a customer",
+      "steps": ["Click name=btn_nav_appointments", "Click name=btn_new_appt", "Lookup customer name=btn_appt_lookup_customer", "Fill name=appt_datetime / name=appt_dept / name=appt_advisor / name=appt_reason", "Click name=btn_save_appt"],
+      "validation": "A new appointments row exists with status Scheduled"
+    },
+    "inventory_lookup": {
+      "title": "Inventory Lookup",
+      "description": "Search the lot for a vehicle by stock number, VIN, or make/model",
+      "steps": ["Click name=btn_nav_inventory", "Type into name=inventory_search", "Click name=btn_search_inventory", "Read rows from name=inventory_tree"],
+      "validation": "Matching vehicles are displayed in the inventory grid"
+    },
+    "report_generation": {
+      "title": "Report Generation",
+      "description": "Run a canned dealership report and read the output",
+      "steps": ["Click name=btn_nav_reports", "Click a name=btn_report_<key> button", "Wait for the progress bar", "Read the result grid"],
+      "validation": "The report renders rows in the output notebook"
+    },
+    "end_to_end": {
+      "title": "End-to-End Service Visit",
+      "description": "login -> find customer -> open record -> create repair order -> schedule follow-up -> logout",
+      "steps": ["Login", "Open customer", "Create repair order", "Schedule follow-up appointment", "Logout"],
+      "validation": "Repair order and appointment rows persist; session ends"
+    }
+  }
+}
