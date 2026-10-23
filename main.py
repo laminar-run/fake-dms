@@ -1,6 +1,7 @@
 """DealerDesk 98 - Entry Point."""
 import os
 import sys
+import argparse
 
 # Ensure the project root is on sys.path when launched from a shortcut
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -48,6 +49,19 @@ def _get_chaos_setting(key):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="DealerDesk 98")
+    parser.add_argument("command", nargs="?", choices=["setup"])
+    parser.add_argument("--port", type=int)
+    args = parser.parse_args()
+    if args.command == "setup":
+        if args.port is None:
+            parser.error("setup requires --port")
+        from test_control.config import setup
+        print(setup(args.port))
+        return
+    if args.port is not None:
+        parser.error("--port is only used with setup")
+
     init_db()
     seed()
 
@@ -62,7 +76,18 @@ def main():
             pass
 
     _launch_login(root)
-    root.mainloop()
+    from test_control.config import current, location
+    from test_control.receiver import Receiver
+    entry = current()
+    receiver = None
+    if entry:
+        receiver = Receiver(root, entry, location().parent / "dealerdesk-receipts.sqlite")
+        receiver.start()
+    try:
+        root.mainloop()
+    finally:
+        if receiver:
+            receiver.stop()
 
 
 if __name__ == "__main__":

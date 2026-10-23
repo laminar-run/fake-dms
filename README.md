@@ -13,6 +13,22 @@ python main.py                           # launches the Win98 desktop app
 python create_shortcut.py                # (Windows) puts "DealerDesk 98.lnk" on the Desktop
 ```
 
+## Local injected action receiver
+
+In the Windows account that runs DealerDesk, choose an available loopback port and run
+`python main.py setup --port 8765` (replace the example port with the assigned port).
+This atomically updates `%LOCALAPPDATA%\Minicor\injected-apps.json` and keeps the same
+instance ID on repeated setup. The `MINICOR_DATA_DIR` override selects a test
+directory in both DealerDesk and MDS. Restart DealerDesk after changing the port. Normal
+`python main.py` starts the receiver only when this account has a mapping, and closing
+the app stops it. Receipts live separately in `dealerdesk-receipts.sqlite` in that folder.
+
+The receiver accepts `POST /action` on `127.0.0.1` for `dealerdesk.critical-error`.
+It intentionally trusts local callers: any process in the user session can invoke
+the installed action without middleware policy. MDS authenticates remote delivery.
+The pinned `contracts/injected-actions.v1.json` SHA-256 is
+`7f17102b9a7c9567ad409429b6ba717efd386876afce79e420ff9e013f062f9a`.
+
 The database `dms.db` is created and seeded automatically on first launch (idempotent - safe to re-run).
 
 ## Logins
