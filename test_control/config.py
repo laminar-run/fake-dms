@@ -36,12 +36,14 @@ def _entries(path):
     if not path.exists():
         return []
     data = json.loads(path.read_text(encoding="utf-8"))
-    if set(data) != {"version", "apps"} or type(data["version"]) is not int or data["version"] != 1 or not isinstance(data["apps"], list):
+    if not isinstance(data, dict) or set(data) != {"version", "apps"} or type(data["version"]) is not int or data["version"] != 1 or not isinstance(data["apps"], list):
         raise ValueError("Invalid injected app map")
     seen = set()
     ports = set()
     for entry in data["apps"]:
-        if set(entry) != {"appId", "targetUser", "instanceId", "port"}:
+        if not isinstance(entry, dict) or set(entry) != {"appId", "targetUser", "instanceId", "port"}:
+            raise ValueError("Invalid injected app entry")
+        if any(not isinstance(entry[key], str) or not entry[key] for key in ("appId", "targetUser", "instanceId")):
             raise ValueError("Invalid injected app entry")
         key = (entry["appId"], entry["targetUser"])
         if key in seen or type(entry["port"]) is not int or not 1 <= entry["port"] <= 65535 or entry["port"] in ports:

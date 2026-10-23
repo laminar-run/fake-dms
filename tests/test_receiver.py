@@ -1,14 +1,16 @@
 import hashlib
 import http.client
+import importlib
 import json
-import os
 from pathlib import Path
+import sys
 import tempfile
 import threading
 import time
+from types import SimpleNamespace
 import unittest
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from test_control.config import current, setup, user
 from test_control.receiver import Receiver, session_id
@@ -73,7 +75,7 @@ class ReceiverTests(unittest.TestCase):
             windows.append(window)
             on_created(window)
 
-        with patch("chaos.scenarios.scenario_critical_error", side_effect=show):
+        with patch.dict(sys.modules, {"chaos.scenarios": SimpleNamespace(scenario_critical_error=show)}):
             first = self.envelope()
             status, result = self.execute(first)
             self.assertEqual((status, result["status"], len(windows)), (200, "completed", 1))
@@ -106,7 +108,8 @@ class ReceiverTests(unittest.TestCase):
     def test_queued_timeout_does_not_show_later(self):
         request = self.envelope()
         self.assertEqual(self.post(request)[1]["code"], "ui_unresponsive")
-        with patch("chaos.scenarios.scenario_critical_error") as show:
+        show = Mock()
+        with patch.dict(sys.modules, {"chaos.scenarios": SimpleNamespace(scenario_critical_error=show)}):
             self.receiver.poll()
             show.assert_not_called()
         self.assertEqual(self.post(request)[1]["status"], "failed")
@@ -122,7 +125,7 @@ class ReceiverTests(unittest.TestCase):
             release.wait(3)
             on_created(Window())
 
-        with patch("chaos.scenarios.scenario_critical_error", side_effect=show):
+        with patch.dict(sys.modules, {"chaos.scenarios": SimpleNamespace(scenario_critical_error=show)}):
             client = threading.Thread(target=lambda: output.append(self.post(request)))
             client.start()
             for _ in range(100):
@@ -145,8 +148,9 @@ class ConfigTests(unittest.TestCase):
             path = Path(folder) / "injected-apps.json"
             other = {"appId": "other", "targetUser": user(), "instanceId": str(uuid.uuid4()).upper(), "port": 39111}
             path.write_text(json.dumps({"version": 1, "apps": [other]}))
-            first = setup(39112, path)
-            second = setup(39113, path)
+            with patch("test_control.config.socket.socket"):
+                first = setup(39112, path)
+                second = setup(39113, path)
             self.assertEqual(first["instanceId"], second["instanceId"])
             self.assertEqual(current(path), second)
             self.assertEqual(json.loads(path.read_text())["apps"], [other, second])
@@ -159,6 +163,31 @@ class ConfigTests(unittest.TestCase):
             path.write_text(json.dumps({"version": True, "apps": []}))
             with self.assertRaises(ValueError):
                 current(path)
+
+    def test_malformed_mapping_raises_value_error(self):
+        valid = {"appId": "dealerdesk", "targetUser": user(), "instanceId": str(uuid.uuid4()), "port": 39112}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "injected-apps.json"
+            for payload in ([], {"version": 1, "apps": [None]},
+                            {"version": 1, "apps": [dict(valid, appId=[])]},
+                            {"version": 1, "apps": [dict(valid, instanceId=4)]}):
+                path.write_text(json.dumps(payload))
+                with self.subTest(payload=payload), self.assertRaises(ValueError):
+                    current(path)
+
+    def test_receiver_startup_failure_keeps_desktop_running(self):
+        root = Mock()
+        with patch.dict(sys.modules, {"tkinter": SimpleNamespace(Tk=lambda: root)}):
+            app = importlib.import_module("main")
+        for config_error in (ValueError("invalid mapping"), None):
+            with self.subTest(config_error=config_error):
+                root.reset_mock()
+                with patch.object(app, "init_db"), patch.object(app, "seed"), patch.object(app, "_launch_login"), \
+                     patch("test_control.config.current", side_effect=config_error, return_value={"port": 39112}), \
+                     patch("test_control.receiver.Receiver", side_effect=OSError("port occupied")), \
+                     patch.object(sys, "argv", ["main.py"]), patch("sys.stderr"):
+                    app.main()
+                root.mainloop.assert_called_once_with()
 
     def test_pinned_contract_parameter_shapes(self):
         path = Path(__file__).parents[1] / "contracts" / "injected-actions.v1.json"

@@ -78,10 +78,14 @@ def main():
     _launch_login(root)
     from test_control.config import current, location
     from test_control.receiver import Receiver
-    entry = current()
     receiver = None
-    if entry:
-        receiver = Receiver(root, entry, location().parent / "dealerdesk-receipts.sqlite")
+    try:
+        entry = current()
+        if entry:
+            receiver = Receiver(root, entry, location().parent / "dealerdesk-receipts.sqlite")
+    except (OSError, ValueError) as error:
+        print(f"Action receiver unavailable: {error}", file=sys.stderr)
+    if receiver:
         receiver.start()
     try:
         root.mainloop()

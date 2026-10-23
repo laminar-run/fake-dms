@@ -22,6 +22,9 @@ instance ID on repeated setup. The `MINICOR_DATA_DIR` override selects a test
 directory in both DealerDesk and MDS. Restart DealerDesk after changing the port. Normal
 `python main.py` starts the receiver only when this account has a mapping, and closing
 the app stops it. Receipts live separately in `dealerdesk-receipts.sqlite` in that folder.
+If the mapping is invalid or the port is unavailable, DealerDesk still opens and prints
+`Action receiver unavailable` to standard error. Injected actions remain unavailable until
+the mapping or port is fixed and the app is restarted.
 
 The receiver accepts `POST /action` on `127.0.0.1` for `dealerdesk.critical-error`.
 It intentionally trusts local callers: any process in the user session can invoke

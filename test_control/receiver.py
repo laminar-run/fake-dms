@@ -181,7 +181,6 @@ class Receiver:
                     continue
                 work.state = "started"
             try:
-                from chaos.scenarios import scenario_critical_error
                 if work.data["version"] != 1:
                     with self.lock:
                         self._finish(work, "failed", "unsupported_version")
@@ -192,6 +191,7 @@ class Receiver:
                     with self.lock:
                         self._finish(work, "already_active", injection=self.active[1])
                 else:
+                    from chaos.scenarios import scenario_critical_error
                     scenario_critical_error(self.root, on_created=lambda win, item=work: self._created(item, win), schedule=False)
             except Exception:
                 with self.lock:
