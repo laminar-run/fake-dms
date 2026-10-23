@@ -1,4 +1,4 @@
-"""Per-user DealerDesk loopback registration."""
+import ctypes
 import getpass
 import json
 import os
@@ -12,6 +12,12 @@ APP_ID = "dealerdesk"
 
 
 def user():
+    if os.name == "nt":
+        size = ctypes.c_ulong(257)
+        name = ctypes.create_unicode_buffer(size.value)
+        if not ctypes.windll.advapi32.GetUserNameW(name, ctypes.byref(size)):
+            raise OSError("Cannot resolve Windows user")
+        return name.value.split("\\")[-1].casefold()
     return getpass.getuser().strip().split("\\")[-1].casefold()
 
 
@@ -30,7 +36,7 @@ def _entries(path):
     if not path.exists():
         return []
     data = json.loads(path.read_text(encoding="utf-8"))
-    if set(data) != {"version", "apps"} or data["version"] != 1 or not isinstance(data["apps"], list):
+    if set(data) != {"version", "apps"} or type(data["version"]) is not int or data["version"] != 1 or not isinstance(data["apps"], list):
         raise ValueError("Invalid injected app map")
     seen = set()
     ports = set()
@@ -48,7 +54,8 @@ def _entries(path):
 
 def current(path=None):
     entries = _entries(path or location())
-    return next((item for item in entries if item["appId"] == APP_ID and item["targetUser"] == user()), None)
+    entry = next((item for item in entries if item["appId"] == APP_ID and item["targetUser"] == user()), None)
+    return dict(entry, instanceId=str(uuid.UUID(entry["instanceId"]))) if entry else None
 
 
 def setup(port, path=None):

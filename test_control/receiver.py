@@ -1,4 +1,4 @@
-"""Bounded loopback delivery, durable receipts, and Tk-thread effect creation."""
+from contextlib import closing, contextmanager
 import ctypes
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -23,7 +23,7 @@ def session_id():
 
 def validate(data, entry):
     keys = {"version", "requestId", "injectionId", "actionId", "parameters", "targetUser", "sessionId", "appInstanceId"}
-    if not isinstance(data, dict) or set(data) != keys or type(data["version"]) is not int or data["version"] != 1:
+    if not isinstance(data, dict) or set(data) != keys or type(data["version"]) is not int:
         raise ValueError("invalid_envelope")
     for key in ("requestId", "injectionId", "appInstanceId"):
         if not isinstance(data[key], str) or not re.fullmatch(r"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", data[key]):
@@ -36,7 +36,7 @@ def validate(data, entry):
         raise ValueError("target_mismatch")
     if not isinstance(data["actionId"], str) or not isinstance(data["parameters"], dict):
         raise ValueError("invalid_action")
-    if data["actionId"] == "dealerdesk.critical-error" and data["parameters"] != {}:
+    if data["version"] == 1 and data["actionId"] == "dealerdesk.critical-error" and data["parameters"] != {}:
         raise ValueError("invalid_parameters")
     return json.dumps(data, sort_keys=True, separators=(",", ":"))
 
@@ -97,8 +97,11 @@ class Receiver:
         self.server = BoundedServer(("127.0.0.1", entry["port"]), self._handler())
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
 
+    @contextmanager
     def _db(self):
-        return sqlite3.connect(self.database, timeout=2)
+        with closing(sqlite3.connect(self.database, timeout=2)) as db:
+            with db:
+                yield db
 
     def start(self):
         self.thread.start()
@@ -179,7 +182,10 @@ class Receiver:
                 work.state = "started"
             try:
                 from chaos.scenarios import scenario_critical_error
-                if work.data["actionId"] != "dealerdesk.critical-error":
+                if work.data["version"] != 1:
+                    with self.lock:
+                        self._finish(work, "failed", "unsupported_version")
+                elif work.data["actionId"] != "dealerdesk.critical-error":
                     with self.lock:
                         self._finish(work, "failed", "unsupported_action")
                 elif self.active is not None and self.active[0].winfo_exists():
@@ -213,7 +219,7 @@ class Receiver:
                         data = json.loads(self.rfile.read(int(size)))
                         result = receiver.dispatch(data)
                     except (ValueError, UnicodeError, json.JSONDecodeError) as error:
-                        code = str(error) if isinstance(error, ValueError) else "invalid_body"
+                        code = "invalid_body" if isinstance(error, (UnicodeError, json.JSONDecodeError)) else str(error)
                         return self.send(409 if code == "request_conflict" else 400, {"code": code})
                     except sqlite3.Error:
                         return self.send(503, {"code": "receipt_unavailable"})

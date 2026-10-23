@@ -98,6 +98,7 @@ class ReceiverTests(unittest.TestCase):
             db.execute("INSERT INTO receipts VALUES (?,?,NULL)", (request["requestId"], validate(request, self.entry)))
         self.assertEqual(self.post(request)[1]["status"], "unknown")
         self.assertEqual(self.execute(self.envelope(actionId="unknown.action"))[1]["code"], "unsupported_action")
+        self.assertEqual(self.execute(self.envelope(version=2))[1]["code"], "unsupported_version")
         for changes in ({"sessionId": True}, {"appInstanceId": str(uuid.uuid4())},
                         {"parameters": {"x": 1}}, {"requestId": "bad"}, {"extra": 1}):
             self.assertEqual(self.post(self.envelope(**changes))[0], 400)
@@ -142,7 +143,7 @@ class ConfigTests(unittest.TestCase):
     def test_atomic_setup_preserves_other_apps_and_instance(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "injected-apps.json"
-            other = {"appId": "other", "targetUser": user(), "instanceId": str(uuid.uuid4()), "port": 39111}
+            other = {"appId": "other", "targetUser": user(), "instanceId": str(uuid.uuid4()).upper(), "port": 39111}
             path.write_text(json.dumps({"version": 1, "apps": [other]}))
             first = setup(39112, path)
             second = setup(39113, path)
@@ -152,6 +153,12 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 setup(39111, path)
             self.assertEqual(current(path), second)
+            second["instanceId"] = second["instanceId"].upper()
+            path.write_text(json.dumps({"version": 1, "apps": [other, second]}))
+            self.assertEqual(current(path)["instanceId"], first["instanceId"])
+            path.write_text(json.dumps({"version": True, "apps": []}))
+            with self.assertRaises(ValueError):
+                current(path)
 
     def test_pinned_contract_parameter_shapes(self):
         path = Path(__file__).parents[1] / "contracts" / "injected-actions.v1.json"
