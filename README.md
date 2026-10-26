@@ -63,3 +63,24 @@ See `config.json -> use_cases` for full step-by-step flows. Highlights:
 - Deal form: `btn_new_deal`, `btn_deal_lookup_customer`, `btn_deal_lookup_vehicle`, `deal_date`, `deal_salesperson`, `deal_type`, `deal_sale_price`, `deal_status`, `btn_save_deal`
 - Appointment form: `btn_new_appt`, `btn_appt_lookup_customer`, `appt_datetime`, `appt_dept`, `appt_advisor`, `appt_reason`, `appt_status`, `btn_save_appt`
 - Inventory: `inventory_search`, `inventory_status_filter`, `btn_search_inventory`, `inventory_tree`
+
+## Workflow action installation
+
+Install the action for each Windows user that runs DealerDesk, choosing a unique local port for each running instance.
+Run these commands from the DealerDesk directory in that user's session.
+
+```powershell
+pip install -r requirements.txt
+python -m action_control.install --instance installation-a --port 22051 --version (git rev-parse HEAD)
+python main.py
+```
+
+The installer atomically writes `%ProgramData%\Minicor\actions\registrations\<user>\dealerdesk.json`.
+The user needs write access to that directory and MDS needs read access.
+Remove the registration file to uninstall the action, then restart DealerDesk.
+MDS advertises installed definitions on its next heartbeat, whether or not DealerDesk is running.
+The receiver listens only on loopback at the configured port and requires a running DealerDesk instance.
+The action ID is `dealerdesk.critical-error`, version 1, with empty `{}` parameters.
+It acknowledges completion after the critical error dialog has been created on the Tk thread.
+A reused request ID returns the saved outcome or `unknown` after interruption.
+Receipt history is limited to 1,000 completed and 1,000 unresolved requests for each instance and Windows user.
