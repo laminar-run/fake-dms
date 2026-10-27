@@ -127,6 +127,8 @@ class Receiver:
                 insort(pending, (created, request_id, path, body))
                 if len(pending) > 10:
                     pending.pop()
+            except FileNotFoundError:
+                continue
             except OSError:
                 logging.exception("Cannot read action request %s", path)
                 continue
