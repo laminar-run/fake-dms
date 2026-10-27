@@ -126,7 +126,7 @@ class Receiver:
                 pending.append((created, request_id, path, body))
             except FileNotFoundError:
                 continue
-            except (ValueError, KeyError, TypeError):
+            except (ValueError, KeyError, TypeError, OverflowError):
                 logging.exception("Discarding invalid action request %s", path)
                 path.unlink(missing_ok=True)
         return sorted(pending)[:10]

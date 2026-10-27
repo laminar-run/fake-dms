@@ -111,7 +111,7 @@ def test_pending_requests_execute_by_timestamp_then_id(tmp_path, monkeypatch):
         return {"requestId": request["requestId"], "outcome": {"kind": "completed"}}
     monkeypatch.setattr(receiver, "execute", execute)
     now = time.time()
-    for request_id, created in (("z", now), ("b", now - 1), ("a", now - 1)):
+    for request_id, created in (("z", now), ("b", now - 1), ("a", now - 1), ("overflow", 10**400)):
         name = hashlib.sha256(request_id.encode()).hexdigest()
         (receiver.inbox / (name + ".request.json")).write_text(json.dumps({"request": {"requestId": request_id}, "createdAt": created, "expiresAt": now + 15}))
     receiver.poll()
