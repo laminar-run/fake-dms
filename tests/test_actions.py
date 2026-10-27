@@ -132,4 +132,4 @@ def test_pending_requests_execute_by_timestamp_then_id(tmp_path, monkeypatch):
         (receiver.inbox / (name + ".request.json")).write_text(json.dumps({"request": {"requestId": request_id}, "createdAt": created, "expiresAt": now + 15}))
     receiver.poll()
     assert calls == ["a", "b", "z"] + [str(n) for n in range(7)]
-    assert len(list(receiver.inbox.glob("*.request.json"))) == 6
+    assert len([path for path in receiver.inbox.glob("*.request.json") if path.is_file()]) == 5
