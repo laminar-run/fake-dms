@@ -54,3 +54,20 @@ def test_expired_and_malformed_files_do_not_block_polling(tmp_path, monkeypatch)
     (receiver.inbox / "bad.request.json").write_text("{")
     receiver.poll()
     assert not seen and not list(receiver.inbox.glob("*.json"))
+
+
+def test_cleanup_continues_when_a_file_disappears(tmp_path, monkeypatch, caplog):
+    from pathlib import Path
+    from unittest.mock import Mock
+    monkeypatch.setenv("PROGRAMDATA", str(tmp_path))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    receiver = Receiver(Mock(), json.loads(install("robot", "desk", "v1").read_text()))
+    missing = receiver.inbox / "missing.json"
+    stale = receiver.inbox / "stale.json"
+    stale.write_text("{}")
+    monkeypatch.setattr(Path, "iterdir", lambda self: iter([missing, stale]))
+    monkeypatch.setattr("action_control.receiver.time.time", lambda: 10**12)
+    receiver.poll()
+    assert not stale.exists()
+    assert not caplog.records
+    receiver.root.after.assert_called_once_with(100, receiver.poll)

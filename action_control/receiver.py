@@ -145,8 +145,11 @@ class Receiver:
                         processing.unlink(missing_ok=True)
                         temporary.unlink(missing_ok=True)
             for path in self.inbox.iterdir():
-                if path.suffix in (".json", ".tmp") and time.time() - path.stat().st_mtime > 60:
-                    path.unlink(missing_ok=True)
+                try:
+                    if path.suffix in (".json", ".tmp") and time.time() - path.stat().st_mtime > 60:
+                        path.unlink(missing_ok=True)
+                except FileNotFoundError:
+                    continue
         except OSError:
             logging.exception("Cannot poll action inbox %s", self.inbox)
         finally:
