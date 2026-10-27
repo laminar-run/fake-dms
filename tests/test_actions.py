@@ -28,6 +28,17 @@ def test_receiver_validates_and_deduplicates_after_popup(tmp_path, monkeypatch):
     assert response["outcome"]["kind"] == "completed"
     assert receiver.execute(request, time.time() + 15) == response
     assert seen == [True]
+    def fail(root, immediate):
+        raise RuntimeError()
+    monkeypatch.setattr("chaos.scenarios.scenario_critical_error", fail)
+    failed_request = {**request, "requestId": "failed"}
+    failed = receiver.execute(failed_request, time.time() + 15)
+    assert failed["outcome"] == {"kind": "failed", "reason": "RuntimeError"}
+    restarted = Receiver(Root(), registration)
+    assert restarted.execute(failed_request, time.time() + 15) == failed
+    monkeypatch.setattr("chaos.scenarios.scenario_critical_error", lambda root, immediate: seen.append(immediate))
+    assert restarted.execute({**request, "requestId": "next"}, time.time() + 15)["outcome"]["kind"] == "completed"
+    assert seen == [True, True]
     request["parameters"] = {"extra": True}
     assert receiver.execute(request, time.time() + 15)["outcome"]["kind"] == "rejected"
 

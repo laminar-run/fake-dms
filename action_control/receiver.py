@@ -60,7 +60,7 @@ def install(user, instance, version):
 
 def outcome(request_id, kind, reason=None):
     value = {"kind": kind}
-    if reason:
+    if reason is not None:
         value["reason"] = reason
     return {"requestId": request_id, "outcome": value}
 
@@ -100,7 +100,7 @@ class Receiver:
                         scenario_critical_error(self.root, immediate=True)
                         response = outcome(request_id, "completed")
                     except Exception as exc:
-                        response = outcome(request_id, "failed", str(exc))
+                        response = outcome(request_id, "failed", str(exc) or type(exc).__name__)
                 receipts.append(stream, request_id, fingerprint, "outcome", response)
                 return response
         except (OSError, ValueError, KeyError, TypeError) as exc:
