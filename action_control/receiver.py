@@ -3,10 +3,12 @@ import json
 import logging
 import os
 from pathlib import Path
-import sqlite3
+import math
 import time
 
 from jsonschema import Draft202012Validator
+
+from action_control import receipts
 
 REQUEST_SCHEMA = {
     "type": "object",
@@ -69,9 +71,7 @@ class Receiver:
         self.inbox = Path(registration["inbox"])
         directory = Path(os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))) / "DealerDesk" / "actions"
         directory.mkdir(parents=True, exist_ok=True)
-        self.db_path = directory / (registration["target"]["instanceId"] + ".sqlite3")
-        with sqlite3.connect(self.db_path) as db:
-            db.execute("CREATE TABLE IF NOT EXISTS receipts (id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, result TEXT, created INTEGER NOT NULL)")
+        self.log_path = directory / (registration["target"]["instanceId"] + ".executed-actions.jsonl")
 
     def execute(self, request, expires_at):
         request_id = request.get("requestId") if isinstance(request, dict) else None
@@ -83,34 +83,57 @@ class Receiver:
         except Exception as exc:
             return outcome(request_id, "rejected", str(exc))
         fingerprint = hashlib.sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-        with sqlite3.connect(self.db_path, timeout=5) as db:
-            db.execute("BEGIN IMMEDIATE")
-            previous = db.execute("SELECT fingerprint, result FROM receipts WHERE id = ?", (request_id,)).fetchone()
-            if previous:
-                if previous[0] != fingerprint:
-                    return outcome(request_id, "rejected", "requestId was already used for a different request")
-                return json.loads(previous[1]) if previous[1] else outcome(request_id, "unknown", "Previous attempt was interrupted")
-            count = db.execute("SELECT COUNT(*) FROM receipts WHERE result IS NULL").fetchone()[0]
-            if count >= 1000:
-                return outcome(request_id, "rejected", "Too many unresolved requests")
-            db.execute("INSERT INTO receipts VALUES (?, ?, NULL, unixepoch())", (request_id, fingerprint))
-            db.execute("DELETE FROM receipts WHERE id IN (SELECT id FROM receipts WHERE result IS NOT NULL ORDER BY created DESC LIMIT -1 OFFSET 999)")
-        if time.time() >= expires_at:
-            response = outcome(request_id, "rejected", "Request expired before execution")
-        else:
-            from chaos.scenarios import scenario_critical_error
+        try:
+            with receipts.locked_log(self.log_path) as stream:
+                previous = receipts.read_receipts(stream).get(request_id)
+                if previous:
+                    if previous["fingerprint"] != fingerprint:
+                        return outcome(request_id, "rejected", "requestId was already used for a different request")
+                    return previous.get("result", outcome(request_id, "unknown", "Previous attempt was interrupted"))
+                receipts.append(stream, request_id, fingerprint, "started")
+                if time.time() >= expires_at:
+                    response = outcome(request_id, "rejected", "Request expired before execution")
+                else:
+                    from chaos.scenarios import scenario_critical_error
+                    try:
+                        scenario_critical_error(self.root, immediate=True)
+                        response = outcome(request_id, "completed")
+                    except Exception as exc:
+                        response = outcome(request_id, "failed", str(exc))
+                receipts.append(stream, request_id, fingerprint, "outcome", response)
+                return response
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            return outcome(request_id, "unknown", f"Cannot safely use action log: {exc}")
+
+    def pending_requests(self):
+        pending = []
+        for path in self.inbox.glob("*.request.json"):
             try:
-                scenario_critical_error(self.root, immediate=True)
-                response = outcome(request_id, "completed")
-            except Exception as exc:
-                response = outcome(request_id, "failed", str(exc))
-        with sqlite3.connect(self.db_path) as db:
-            db.execute("UPDATE receipts SET result = ? WHERE id = ?", (json.dumps(response), request_id))
-        return response
+                with path.open("rb") as stream:
+                    body = stream.read(65537)
+                if len(body) > 65536:
+                    raise ValueError("Request exceeds size limit")
+                envelope = json.loads(body)
+                created = envelope["createdAt"]
+                expires = envelope["expiresAt"]
+                request_id = envelope["request"]["requestId"]
+                if not isinstance(request_id, str) or any(type(t) not in (int, float) or not math.isfinite(t) for t in (created, expires)):
+                    raise ValueError("Invalid request ID or timestamp")
+                if not 0 < created <= expires or not 0 < expires - time.time() <= 30:
+                    raise ValueError("Invalid or expired request timestamp")
+                if path.name != hashlib.sha256(request_id.encode()).hexdigest() + ".request.json":
+                    raise ValueError("Request filename does not match its ID")
+                pending.append((created, request_id, path, body))
+            except FileNotFoundError:
+                continue
+            except (ValueError, KeyError, TypeError):
+                logging.exception("Discarding invalid action request %s", path)
+                path.unlink(missing_ok=True)
+        return sorted(pending)[:10]
 
     def poll(self):
         try:
-            for pending in list(self.inbox.glob("*.request.json"))[:10]:
+            for _, _, pending, expected_body in self.pending_requests():
                 processing = pending.with_name(pending.name.replace(".request.json", ".processing.json"))
                 result = pending.with_name(pending.name.replace(".request.json", ".result.json"))
                 temporary = result.with_suffix(".tmp")
@@ -121,24 +144,17 @@ class Receiver:
                     pending.unlink()
                     with processing.open("rb") as stream:
                         body = stream.read(65537)
-                    if len(body) > 65536:
-                        raise ValueError("Request exceeds size limit")
+                    if body != expected_body:
+                        raise ValueError("Request changed after ordering")
                     envelope = json.loads(body)
                     request = envelope["request"]
-                    if not isinstance(request, dict) or not isinstance(request.get("requestId"), str):
-                        raise ValueError("Invalid request ID")
-                    name = hashlib.sha256(request["requestId"].encode()).hexdigest()
-                    if pending.name != name + ".request.json":
-                        raise ValueError("Request filename does not match its ID")
                     expires_at = envelope["expiresAt"]
-                    if not isinstance(expires_at, (int, float)) or not 0 < expires_at - time.time() <= 30:
-                        continue
                     response = self.execute(request, expires_at)
                     temporary.write_text(json.dumps(response), encoding="utf-8")
                     os.replace(temporary, result)
                 except (FileNotFoundError, FileExistsError):
                     pass
-                except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
+                except (OSError, ValueError, KeyError, TypeError):
                     logging.exception("Cannot process action request %s", pending)
                 finally:
                     if claimed:
@@ -168,5 +184,5 @@ def start_installed(root):
             if registration["target"]["appId"] != "dealerdesk":
                 continue
             root.after(100, Receiver(root, registration).poll)
-        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
+        except (OSError, ValueError, KeyError, TypeError):
             logging.exception("Cannot start action receiver for %s", path)

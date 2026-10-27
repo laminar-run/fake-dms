@@ -87,13 +87,19 @@ Local processes with that filesystem access can submit requests.
 The action ID is `dealerdesk.critical-error`, version 1, with empty `{}` parameters.
 It acknowledges completion after the critical error dialog has been created on the Tk thread.
 A reused request ID returns the saved outcome or `unknown` after interruption.
-Receipt history is limited to 1,000 completed and 1,000 unresolved requests for each instance and Windows user.
+Receipts are appended to `%LOCALAPPDATA%\DealerDesk\actions\<instance>.executed-actions.jsonl` as plain-text JSON lines.
+The app flushes a `started` entry before executing and an `outcome` entry afterward, under an exclusive file lock.
+After a restart, a request with only `started` returns `unknown`; completed requests return their saved outcome.
+A malformed or incomplete log prevents further effects and returns `unknown` until the log is repaired.
+The log is retained without automatic rotation; deleting it removes the app's duplicate protection.
 
 ### File protocol
 
 A sender atomically renames `<sha256(requestId)>.request.tmp` to `<sha256(requestId)>.request.json`.
-Its UTF-8 JSON body is `{"request": <action request>, "expiresAt": <Unix seconds>}`.
-The request and result interfaces are unchanged; the expiry belongs to the transport envelope.
+Its UTF-8 JSON body is `{"request": <action request>, "createdAt": <Unix seconds>, "expiresAt": <Unix seconds>}`.
+The request and result interfaces are unchanged; timestamps belong to the transport envelope.
+The app orders each pending snapshot by `createdAt`, then by request ID for equal timestamps.
+This orders requests already present, not requests that arrive after a snapshot.
 MDS sets a 15-second deadline and removes stale results before publishing.
 The receiver claims a request by creating a hard link named `<hash>.processing.json` without replacing an existing claim, then removes the request name.
 Both files are on the same local NTFS volume.
@@ -102,4 +108,4 @@ Requests larger than 64 KiB, malformed requests, and requests past their deadlin
 MDS waits up to 15 seconds, validates the matching request ID, and removes its request and result files.
 A timeout returns `unknown`; a claimed action may already have happened.
 The receiver removes its processing file after handling and stale files after 60 seconds.
-An interrupted processing file is never replayed; persistent receipts prevent repeating acknowledged effects while retained.
+An interrupted processing file is never replayed; the text log prevents repeating acknowledged effects while retained.
