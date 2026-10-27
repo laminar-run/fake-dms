@@ -66,12 +66,12 @@ See `config.json -> use_cases` for full step-by-step flows. Highlights:
 
 ## Workflow action installation
 
-Install the action for each Windows user that runs DealerDesk, choosing a unique local port for each running instance.
+Install the action for each Windows user that runs DealerDesk.
 Run these commands from the DealerDesk directory in that user's session.
 
 ```powershell
 pip install -r requirements.txt
-python -m action_control.install --instance installation-a --port 22051 --version (git rev-parse HEAD)
+python -m action_control.install --instance installation-a --version (git rev-parse HEAD)
 python main.py
 ```
 
@@ -79,8 +79,27 @@ The installer atomically writes `%ProgramData%\Minicor\actions\registrations\<us
 The user needs write access to that directory and MDS needs read access.
 Remove the registration file to uninstall the action, then restart DealerDesk.
 MDS advertises installed definitions on its next heartbeat, whether or not DealerDesk is running.
-The receiver listens only on loopback at the configured port and requires a running DealerDesk instance.
+DealerDesk polls its registered file inbox on the Tk thread every 100 ms; no server is started.
+A stopped app does not consume requests, and expired requests are discarded on restart.
+The inbox is `%ProgramData%\Minicor\actions\inboxes\<user>\<identity>`, where identity is the SHA-256 hex digest of UTF-8 `appId + NUL + instanceId`.
+The installer creates it and records its absolute path as `inbox`; both MDS and DealerDesk need read/write access.
+Local processes with that filesystem access can submit requests.
 The action ID is `dealerdesk.critical-error`, version 1, with empty `{}` parameters.
 It acknowledges completion after the critical error dialog has been created on the Tk thread.
 A reused request ID returns the saved outcome or `unknown` after interruption.
 Receipt history is limited to 1,000 completed and 1,000 unresolved requests for each instance and Windows user.
+
+### File protocol
+
+A sender atomically renames `<sha256(requestId)>.request.tmp` to `<sha256(requestId)>.request.json`.
+Its UTF-8 JSON body is `{"request": <action request>, "expiresAt": <Unix seconds>}`.
+The request and result interfaces are unchanged; the expiry belongs to the transport envelope.
+MDS sets a 15-second deadline and removes stale results before publishing.
+The receiver claims a request by creating a hard link named `<hash>.processing.json` without replacing an existing claim, then removes the request name.
+Both files are on the same local NTFS volume.
+After creating the effect, it atomically publishes `<hash>.result.json` containing the action result.
+Requests larger than 64 KiB, malformed requests, and requests past their deadline are discarded.
+MDS waits up to 15 seconds, validates the matching request ID, and removes its request and result files.
+A timeout returns `unknown`; a claimed action may already have happened.
+The receiver removes its processing file after handling and stale files after 60 seconds.
+An interrupted processing file is never replayed; persistent receipts prevent repeating acknowledged effects while retained.

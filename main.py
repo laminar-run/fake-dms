@@ -62,12 +62,9 @@ def main():
             pass
 
     from action_control.receiver import start_installed
-    action_servers = start_installed(root)
+    start_installed(root)
     _launch_login(root)
     root.mainloop()
-    for server in action_servers:
-        server.shutdown()
-        server.server_close()
 
 
 if __name__ == "__main__":
