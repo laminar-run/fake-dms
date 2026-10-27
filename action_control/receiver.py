@@ -1,3 +1,4 @@
+from bisect import insort
 import hashlib
 import json
 import logging
@@ -123,13 +124,19 @@ class Receiver:
                     raise ValueError("Invalid or expired request timestamp")
                 if path.name != hashlib.sha256(request_id.encode()).hexdigest() + ".request.json":
                     raise ValueError("Request filename does not match its ID")
-                pending.append((created, request_id, path, body))
-            except FileNotFoundError:
+                insort(pending, (created, request_id, path, body))
+                if len(pending) > 10:
+                    pending.pop()
+            except OSError:
+                logging.exception("Cannot read action request %s", path)
                 continue
             except (ValueError, KeyError, TypeError, OverflowError):
                 logging.exception("Discarding invalid action request %s", path)
-                path.unlink(missing_ok=True)
-        return sorted(pending)[:10]
+                try:
+                    path.unlink(missing_ok=True)
+                except OSError:
+                    logging.exception("Cannot discard action request %s", path)
+        return pending
 
     def poll(self):
         try:

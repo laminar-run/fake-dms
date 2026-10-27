@@ -86,6 +86,10 @@ def test_text_receipts_survive_restart_and_fail_closed(tmp_path, monkeypatch):
     assert Receiver(Root(), registration).execute(request, time.time() + 15) == result
     entries = receiver.log_path.read_text().splitlines()
     assert [json.loads(line)["event"] for line in entries] == ["started", "outcome"]
+    for changes in ({"timestamp": None}, {"timestamp": True}, {"result": {"requestId": "one"}}, {"result": {"requestId": "one", "outcome": {"kind": "failed"}}}):
+        broken = {**json.loads(entries[1]), **changes}
+        receiver.log_path.write_text(entries[0] + "\n" + json.dumps(broken) + "\n")
+        assert receiver.execute({**request, "requestId": "new"}, time.time() + 15)["outcome"]["kind"] == "unknown"
     conflicting = {**json.loads(entries[0]), "fingerprint": "different"}
     receiver.log_path.write_text(json.dumps(conflicting) + "\n")
     assert receiver.execute(request, time.time() + 15)["outcome"]["kind"] == "rejected"
@@ -111,8 +115,10 @@ def test_pending_requests_execute_by_timestamp_then_id(tmp_path, monkeypatch):
         return {"requestId": request["requestId"], "outcome": {"kind": "completed"}}
     monkeypatch.setattr(receiver, "execute", execute)
     now = time.time()
-    for request_id, created in (("z", now), ("b", now - 1), ("a", now - 1), ("overflow", 10**400)):
+    (receiver.inbox / "directory.request.json").mkdir()
+    for request_id, created in [(str(n), now + n / 100) for n in range(12)] + [("z", now - 1), ("b", now - 2), ("a", now - 2), ("overflow", 10**400)]:
         name = hashlib.sha256(request_id.encode()).hexdigest()
         (receiver.inbox / (name + ".request.json")).write_text(json.dumps({"request": {"requestId": request_id}, "createdAt": created, "expiresAt": now + 15}))
     receiver.poll()
-    assert calls == ["a", "b", "z"]
+    assert calls == ["a", "b", "z"] + [str(n) for n in range(7)]
+    assert len(list(receiver.inbox.glob("*.request.json"))) == 6

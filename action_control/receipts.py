@@ -37,6 +37,23 @@ def read_receipts(stream):
         request_id = record["requestId"]
         if not line.endswith("\n") or not isinstance(request_id, str) or not isinstance(record["fingerprint"], str):
             raise ValueError("Invalid action log entry")
+        fields = {"requestId", "fingerprint", "event", "timestamp"}
+        if record["event"] == "outcome":
+            fields.add("result")
+        if set(record) != fields or not request_id or not record["fingerprint"]:
+            raise ValueError("Invalid action log fields")
+        timestamp = record["timestamp"]
+        if type(timestamp) not in (int, float) or not 0 < timestamp < float("inf"):
+            raise ValueError("Invalid action log timestamp")
+        if record["event"] == "outcome":
+            result = record["result"]
+            if not isinstance(result, dict) or set(result) != {"requestId", "outcome"}:
+                raise ValueError("Invalid action log result")
+            outcome = result["outcome"]
+            if not isinstance(outcome, dict) or outcome.get("kind") not in ("completed", "armed", "rejected", "failed", "unknown"):
+                raise ValueError("Invalid action log outcome")
+            if outcome["kind"] in ("rejected", "failed", "unknown") and not isinstance(outcome.get("reason"), str):
+                raise ValueError("Action log error lacks reason")
         previous = receipts.get(request_id)
         if record["event"] == "started" and previous is None:
             receipts[request_id] = record
